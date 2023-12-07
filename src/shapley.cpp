@@ -16,6 +16,7 @@ PG_FUNCTION_INFO_V1(shapley_all_vars);
 #include "dDNNFTreeDecompositionBuilder.h"
 #include "CircuitFromShMem.h"
 #include <fstream>
+#include <chrono>
 
 using namespace std;
 
@@ -97,12 +98,15 @@ Datum shapley_all_vars(PG_FUNCTION_ARGS)
       text *t = PG_GETARG_TEXT_P(2);
       args = string(VARDATA(t),VARSIZE(t)-VARHDRSZ);
     }
-
+    auto start_time = std::chrono::high_resolution_clock::now();
     BooleanCircuit c = createBooleanCircuit(token);
 
     dDNNF dd = c.makeDD(c.getGate(uuid2string(token)), method, args);
     dd.makeSmooth();
     dd.makeGatesBinary(BooleanGate::AND);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    double execution_time_seconds = std::chrono::duration<double>(execution_time).count();
 
     for(auto &v_circuit_gate: c.getInputs()) {
       auto var_uuid_string = c.getUUID(v_circuit_gate);
@@ -112,10 +116,10 @@ Datum shapley_all_vars(PG_FUNCTION_ARGS)
 
       double result = dd.shapley(var_gate);
 
-      Datum values[2] = {
-        UUIDPGetDatum(uuidp), Float8GetDatum(result)
+      Datum values[3] = {
+        UUIDPGetDatum(uuidp), Float8GetDatum(result), Float8GetDatum(execution_time_seconds)
       };
-      bool nulls[sizeof(values)] = {0, 0};
+      bool nulls[sizeof(values)] = {0, 0, 0};
 
       tuplestore_putvalues(tupstore, tupdesc, values, nulls);
     }
