@@ -644,7 +644,7 @@ CREATE OR REPLACE FUNCTION shapley_all_vars(
   IN arguments text = NULL,
   OUT variable UUID,
   OUT shapley DOUBLE PRECISION,
-  OUT OUT execution_time_seconds DOUBLE PRECISION)
+  OUT execution_time_seconds DOUBLE PRECISION)
   RETURNS SETOF record AS
   'provsql', 'shapley_all_vars'
   LANGUAGE C STABLE;
